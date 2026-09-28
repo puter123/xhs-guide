@@ -73,6 +73,61 @@
         }
         .style-tag:active { transform: scale(0.95); }
         .style-tag.active { background: #8B5E3C; color: #FFFFFF; border-color: #8B5E3C; }
+
+        /* 美团 + 大众点评 评价按钮 */
+        .review-btns {
+            display: flex; gap: 12px; margin-top: 12px;
+        }
+        .btn-review {
+            flex: 1; border: none; border-radius: 14px;
+            padding: 14px 12px; font-size: 14px; font-weight: 700;
+            cursor: pointer; text-align: center; text-decoration: none;
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; transition: all 0.2s;
+        }
+        .btn-review:active { transform: scale(0.96); }
+        .btn-meituan {
+            background: linear-gradient(135deg, #FFD100, #FFB800);
+            color: #5D3A00;
+        }
+        .btn-meituan:active { opacity: 0.85; }
+        .btn-dianping {
+            background: linear-gradient(135deg, #FF6B35, #FF4D4D);
+            color: #FFFFFF;
+        }
+        .btn-dianping:active { opacity: 0.85; }
+
+        /* 评价二维码弹窗 */
+        .review-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(93,64,55,0.6); backdrop-filter: blur(6px);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .review-modal {
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F0 100%);
+            border-radius: 24px; padding: 32px 28px 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(93,64,55,0.25);
+            position: relative; max-width: 360px; width: 90%;
+        }
+        .review-close {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 22px; color: #B8977E;
+            cursor: pointer; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; transition: all 0.2s;
+        }
+        .review-close:hover { background: #FDF3E7; color: #8B5E3C; }
+        .review-title { font-size: 18px; font-weight: 700; color: #5D4037; margin-bottom: 4px; }
+        .review-subtitle { font-size: 13px; color: #B8977E; margin-bottom: 16px; }
+        .review-qr-img {
+            width: 240px; height: 240px; border-radius: 16px;
+            border: 3px solid #E8D5C0; display: block; margin: 0 auto 12px;
+            object-fit: contain; background: #FFF;
+        }
+        .review-tip { font-size: 13px; color: #C8966C; font-weight: 500; margin-top: 4px; }
+        .review-tip-app { font-size: 14px; font-weight: 700; color: #5D4037; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -102,11 +157,78 @@
         <button class="btn btn-refresh" onclick="refreshContent()">🔄 换一条</button>
     </div>
     <a class="btn-xhs" href="javascript:void(0)" onclick="openXHS()">📕 打开小红书去发布</a>
-    <div class="footer">双流青羌汉陶陶艺馆 · 扫码即用 · 千条文案不重样 ✨</div>
+
+    <!-- 美团 + 大众点评 评价入口 -->
+    <div class="review-btns">
+        <button class="btn-review btn-meituan" onclick="openReviewModal('meituan')">
+            <span>🟡</span> 去美团写评价
+        </button>
+        <button class="btn-review btn-dianping" onclick="openReviewModal('dianping')">
+            <span>⭐</span> 去大众点评写评价
+        </button>
+    </div>
+
+    <div class="footer">青羌汉陶·手捏陶艺·团建咨询(双流文昌书院店) ✨</div>
 </div>
+
+<!-- 评价二维码弹窗 -->
+<div class="review-overlay" id="reviewOverlay" onclick="closeReviewOverlay(event)">
+    <div class="review-modal" onclick="event.stopPropagation()">
+        <div class="review-close" onclick="closeReviewModal()">✕</div>
+        <div class="review-title" id="reviewTitle"></div>
+        <div class="review-subtitle">青羌汉陶·手捏陶艺·团建咨询(双流文昌书院店)</div>
+        <div class="review-tip-app" id="reviewTipApp"></div>
+        <img class="review-qr-img" id="reviewQrImg" src="" alt="评价二维码" onerror="this.style.display='none';document.getElementById('qrFallback').style.display='block';">
+        <div id="qrFallback" style="display:none; padding:40px; color:#B8977E; font-size:13px;">二维码加载中…<br>请检查网络后刷新重试</div>
+        <div class="review-tip">📱 请使用 <strong id="reviewAppName">美团</strong> App 扫一扫</div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ==========================================
+//  美团/大众点评 评价二维码（共用）
+// ==========================================
+var REVIEW_QR_URL = "https://raw.githubusercontent.com/puter123/xhs-guide/main/meituan.png";
+
+// 弹窗逻辑
+function openReviewModal(type) {
+    var overlay = document.getElementById("reviewOverlay");
+    var title = document.getElementById("reviewTitle");
+    var tipApp = document.getElementById("reviewTipApp");
+    var appName = document.getElementById("reviewAppName");
+    var img = document.getElementById("reviewQrImg");
+    var fallback = document.getElementById("qrFallback");
+
+    // 重置
+    img.style.display = "block";
+    if (fallback) fallback.style.display = "none";
+    img.src = REVIEW_QR_URL;
+
+    if (type === "meituan") {
+        title.innerHTML = "🟡 美团扫码写评价";
+        tipApp.textContent = "打开「美团」App → 扫一扫";
+        appName.textContent = "美团";
+    } else {
+        title.innerHTML = "⭐ 大众点评扫码写评价";
+        tipApp.textContent = "打开「大众点评」App → 扫一扫";
+        appName.textContent = "大众点评";
+    }
+
+    overlay.style.display = "flex";
+}
+
+function closeReviewModal() {
+    document.getElementById("reviewOverlay").style.display = "none";
+}
+
+function closeReviewOverlay(e) {
+    if (e.target === document.getElementById("reviewOverlay")) {
+        closeReviewModal();
+    }
+}
+
 // ==========================================
 //  核心引擎：模板变量 → 组合爆炸 → 千条文案
 //  防重复 + 降权：复制过的降低出现概率
@@ -115,38 +237,16 @@
 var SHOP_TAG = " #双流青羌汉陶陶艺馆";
 
 // ---------- 变量库 ----------
-// 通过排列组合，文案数量 = 模板数 × 变量组合数
-
-// 通用变量
 var emotions = ["好治愈", "太美了", "好喜欢", "超解压", "太舒服了", "好满足", "爱了爱了", "绝了", "太棒了", "好开心", "真幸福", "被治愈了", "好惬意", "太放松了", "好温暖"];
 var timeWords = ["午后", "周末", "下午", "傍晚", "上午", "黄昏时分", "阳光正好的日子", "闲暇时光", "休息日", "小长假"];
 var weatherWords = ["阳光洒满院子", "微风轻拂", "窗外鸟鸣声声", "暖阳照进窗棂", "秋日暖阳", "春风和煦", "蓝天白云", "雨后初晴", "阳光透过树叶"];
 var endings = ["你值得拥有 🌸", "来试试吧 ✨", "强烈推荐 💯", "绝对不会后悔 🏺", "你会爱上这里的 💕", "相信我！", "太值得体验了 🌿", "一定不要错过 🍂", "闭眼冲就对了！", "来了就知道 🎯"];
 var feelWords = ["内心平静", "整个人都松下来了", "忘记了时间", "找到了久违的宁静", "像被按下了暂停键", "焦虑都被揉走了", "内心被填满了", "感觉整个人被重启了", "心情都变得柔软了"];
 var actionWords = ["安安静静坐了一下午", "沉浸式体验了两小时", "手机都没拿出来过", "专注到忘了看时间", "完全沉浸在泥土的世界里", "不知不觉就过了两个小时", "坐下来就不想走了"];
-
-// 人物变量
 var soloPerson = ["一个人", "独自", "安安静静一个人", "谁也没约，自己"];
-var couplePerson = ["和他", "和男朋友", "和女朋友", "和Ta", "和对象", "和喜欢的人"];
-var friendPerson = ["和闺蜜", "和朋友", "和好姐妹", "和死党", "和好朋友", "和集美"];
-var familyPerson = ["带娃", "带孩子", "带宝贝", "带小朋友", "带一家老小", "带爸妈"];
-var colleaguePerson = ["和同事", "和团队", "和部门小伙伴", "和公司同事"];
-
-// 动作变量
-var soloAction = ["享受独处时光", "给自己充电", "和自己对话", "逃离喧嚣", "放空自己", "犒劳自己", "享受一个人的浪漫"];
-var coupleAction = ["享受二人世界", "一起创造回忆", "手把手教对方", "偷偷给对方刻了字", "相视一笑的甜蜜", "一起做情侣杯"];
-var friendAction = ["一起拍照", "互相嘲笑作品", "一起做手工", "聊天捏泥巴", "欢乐到不行", "笑到肚子疼"];
-var familyAction = ["享受亲子时光", "看娃专注的样子", "记录成长瞬间", "高质量陪伴", "远离电子屏幕"];
-var colleagueAction = ["比破冰游戏有趣多了", "发现同事的另一面", "比吃饭唱歌有意思", "增进感情的好方式"];
-
-// 作品变量
 var works = ["杯子", "碗", "小花瓶", "盘子", "笔筒", "小茶壶", "小摆件", "烟灰缸", "花盆", "小杯子", "咖啡杯", "茶杯"];
 var workAdj = ["歪歪扭扭的", "独一无二的", "有点丑但很可爱的", "不太完美但很特别的", "世界上仅此一个的", "充满手作温度的", "饱含心意的", "可可爱爱的"];
-
-// 价格变量
 var priceWords = ["人均不到200", "一百多就能搞定", "性价比超高", "含烧制才一百多", "超值的体验", "花小钱买大快乐", "比吃顿火锅还便宜", "良心价格"];
-
-// 地点变量
 var placeWords = ["在双流", "在成都双流", "藏在双流的", "双流这家", "成都双流区", "就在双流"];
 
 // ---------- 8种风格的标签模板 ----------
@@ -161,10 +261,7 @@ var baseTagsMap = {
     "团建": "#团建推荐 #部门活动 #公司团建 #朋友聚会 #团队建设 #聚会新玩法 #周末派对 #社团活动 #班级聚会 #开心团建"
 };
 
-// ---------- 模板库 ----------
-// 每条模板里 {xxx} 会被随机替换
-
-// ======== 文艺清新 模板（20条模板，变量组合后 20×多种变量 ≈ 3000+组合） ========
+// ======== 文艺清新 20条 ========
 var templates_文艺 = [
     "安静地坐在陶轮前\n感受泥土在指尖慢慢成形\n\n时间仿佛也变得温柔\n每一圈旋转都是和内心的对话\n\n在这个快节奏的城市里\n给自己一个慢下来的{timeWords}吧 🍂",
     "泥土的芬芳\n指尖的温度\n旋转的陶轮像时光机\n\n把一团普通的泥\n慢慢变成{workAdj}的{works}\n\n这大概就是手作的浪漫吧 🌿",
@@ -188,7 +285,7 @@ var templates_文艺 = [
     "不追求完美\n只享受过程\n\n在青羌汉陶\n做陶艺不是为了做出多好看的{works}\n而是为了那两个小时里\n那个专注又放松的自己\n\n{endings}"
 ];
 
-// ======== 探店打卡 模板（20条） ========
+// ======== 探店打卡 20条 ========
 var templates_探店 = [
     "发现一家藏在双流的宝藏陶艺馆！🏺\n\n门头不大，但里面别有洞天\n满墙的青羌汉陶作品，每一件都是孤品\n\n老师超有耐心，手把手教\n零基础也能做出像样的{works}\n\n{priceWords}\n\n姐妹们冲冲冲！",
     "挖到宝了！！{placeWords}这家陶艺馆也太好拍了吧 📸\n\n原木风装修，每个角落都出片\n老板收藏的老器物摆了一整面墙\n\n体验套餐还包含烧制和上釉\n{priceWords}就能拥有自己的手作{works}\n\n{endings}",
@@ -197,7 +294,7 @@ var templates_探店 = [
     "谁说陶艺是老年人的爱好？！\n{placeWords}这家店年轻人超多！\n\nBGM放着好听的音乐\n墙上贴着客人作品的拍立得\n氛围感拉满 🎵\n\n情侣、闺蜜、一个人来都很合适～",
     "成都双流居然藏着这么一家宝藏陶艺馆！\n\n青羌汉陶，光听名字就很有文化底蕴\n走进去完全被治愈了\n满屋子的手工陶器，每一个都想带回家\n\n体验课{priceWords}\n老师一对一指导\n{endings}",
     "{placeWords}半日游最佳路线：\n上午逛古镇 → 下午做陶艺 ☀️\n\n青羌汉陶交通方便\n停车也方便\n逛累了坐下来捏个{works}\n比在茶馆打麻将有意思多了～",
-    "成都{timenWords}去哪儿？\n别再去太古里人挤人了！\n\n来{placeWords}青羌汉陶\n安安静静做一天手艺人\n喝喝茶、捏捏泥、晒晒太阳\n这才是成都该有的慢生活 🍵",
+    "成都{timeWords}去哪儿？\n别再去太古里人挤人了！\n\n来{placeWords}青羌汉陶\n安安静静做一天手艺人\n喝喝茶、捏捏泥、晒晒太阳\n这才是成都该有的慢生活 🍵",
     "某书爆火的陶艺馆我来实测了！\n\n📍双流青羌汉陶陶艺馆\n真实探店，无滤镜分享：\n\n✅ 环境真的绝，随手拍都是大片\n✅ 老师真的耐心，手残党救星\n✅ 价格真的良心，{priceWords}\n\n唯一的缺点：做上瘾了停不下来！",
     "{timeWords}去哪玩？推荐这个小众宝藏地！\n\n{placeWords}青羌汉陶陶艺馆\n人少、安静、有格调\n不用担心人挤人\n安安静静做一个属于自己的{works}\n这才是假期的正确打开方式 🏖️",
     "成都周末小众玩法：去{placeWords}做一天陶艺人\n\n不用预约排队\n不用人挤人\n安安静静坐一下午\n带走一个自己做的{works}\n\n比去网红店排队三小时香多了！",
@@ -208,11 +305,11 @@ var templates_探店 = [
     "周末探店日记 📔\n\n今天打卡了{placeWords}青羌汉陶陶艺馆\n环境：复古+文艺，超级出片✨\n体验：老师很耐心，零基础无压力👍\n成品：虽然歪了但是独一无二💯\n\n{emotions}！下周末还想去！",
     "朋友推荐的宝藏陶艺馆\n本来以为就是个普通的手作店\n结果去了发现——太！棒！了！\n\n青羌汉陶的氛围感绝了\n陶轮、泥巴、阳光、音乐\n所有元素都刚刚好\n\n{endings}",
     "成都双流 | 我愿称之为「最美陶艺馆」🏆\n\n青羌汉陶不只是陶艺馆\n更像一个小型陶艺博物馆\n\n满墙的汉陶藏品\n让人在动手之前\n先感受了一把传统文化的魅力\n\n文化的厚度 + 手作的温度 = 满分体验",
-    "五一去哪玩？别去景区看人头了！\n来{placeWords}青羌汉陶\n\n人少、环境好、体验佳\n花{timeWords}下午时间\n做一个{works}带回家\n\n比在景区排队三小时拍照两分钟\n舒服一万倍 🙏",
+    "五一去哪玩？别去景区看人头了！\n来{placeWords}青羌汉陶\n\n人少、环境好、体验佳\n花{timeWords}时间\n做一个{works}带回家\n\n比在景区排队三小时拍照两分钟\n舒服一万倍 🙏",
     "成都探店 | 青羌汉陶真实体验报告 📝\n\n一句话总结：超出预期！\n\n本来只是想去拍几张照片\n结果完全沉浸在陶艺里了\n做了快三小时还不想走\n\n做出来的{works}虽然不完美\n但那种成就感\n不是买个杯子能比的\n\n{endings}"
 ];
 
-// ======== 体验教程 模板（20条） ========
+// ======== 体验教程 20条 ========
 var templates_教程 = [
     "陶艺新手必看！5步做出你的第一个{works} 🎯\n\n1️⃣ 揉泥：把气泡揉出来，约5分钟\n2️⃣ 定中心：关键一步！手掌用力稳住\n3️⃣ 开孔：拇指垂直向下，别歪\n4️⃣ 拉高：双手配合，慢慢往上提\n5️⃣ 塑形：做出你想要的弧度\n\n第一次做不用追求完美\n歪歪扭扭的才独一无二 💪",
     "拉胚翻车了怎么办？别慌！🙌\n\n分享几个新手常见问题：\n\n▫️泥巴转飞了 → 水太多，少加点\n▫️中间歪了 → 定中心时没用力\n▫️杯壁厚薄不均 → 手要稳，匀速提\n▫️边缘裂了 → 手太干，多沾水\n\n记住：每个大师都从失败开始\n享受过程最重要～",
@@ -236,7 +333,7 @@ var templates_教程 = [
     "成年人的兴趣班推荐：陶艺 🏺\n\n比健身好坚持（因为好玩）\n比学乐器门槛低（零基础可上手）\n比报网课有成就感（能摸到成果）\n比追剧有意义（还能带走作品）\n\n{timeWords}来青羌汉陶\n开启你的陶艺之旅吧～"
 ];
 
-// ======== 情侣约会 模板（20条） ========
+// ======== 情侣约会 20条 ========
 var templates_情侣 = [
     "和Ta一起来青羌汉陶做陶艺\n大概是最浪漫的约会了吧 💕\n\n你捏杯身，Ta做杯把\n两个人手上都是泥，相视一笑\n\n烧出来也许不完美\n但那是属于你们的、独一无二的东西\n\n偷偷说：做陶艺的时候他认真的样子真的很帅 🤫",
     "约会不知道去哪？来{placeWords}捏泥巴呀！🥰\n\n比看电影有意思多了\n两个人一起学一起笑\n互相在对方作品上刻字\n\n我们的约定：\n以后家里用的{works}都要是自己做的 🥂",
@@ -260,7 +357,7 @@ var templates_情侣 = [
     "【情侣约会测评】陶艺馆 VS 电影院\n\n电影院：\n😐 全程没交流\n😐 看完就忘了\n😐 除了爆米花什么都没留下\n\n青羌汉陶：\n😍 全程互动超甜\n😍 回忆可以珍藏一辈子\n😍 还能带走一个{works}\n\n结果显而易见了 👆"
 ];
 
-// ======== 亲子时光 模板（35条，变量组合后 35×多种变量 ≈ 5000+组合） ========
+// ======== 亲子时光 35条 ========
 var templates_亲子 = [
     "带娃来青羌汉陶体验陶艺\n比想象中好玩一百倍！👧👦\n\n小朋友的想象力真的太丰富了\n捏出来的东西虽然…抽象\n但每一个都有故事\n\n老师说捏泥巴可以锻炼专注力和手部精细动作\n还能远离手机，一举多得！\n\n推荐3岁以上宝贝来玩～",
     "下雨天遛娃新选择！{placeWords}陶艺馆半日游 🌧️\n\n全程2小时，娃从头玩到尾\n完全没喊无聊也没要看手机\n（老母亲感动哭了）\n\n最后一人做了一个{works}\n宝贝说以后要用自己做的{works}吃饭\n饭量都变大了哈哈哈 🍚",
@@ -299,7 +396,7 @@ var templates_亲子 = [
     "青羌汉陶亲子体验——年度最佳遛娃去处 🏆\n\n颁这个奖的理由：\n✅ 娃玩得开心（最重要）\n✅ 妈不累（也非常重要）\n✅ 有成果（能发朋友圈）\n✅ 有意义（不是瞎玩）\n✅ 想再去（说明真的好玩）\n\n{endings}"
 ];
 
-// ======== 解压治愈 模板（20条） ========
+// ======== 解压治愈 20条 ========
 var templates_解压 = [
     "最近压力大到爆炸\n朋友拉我来青羌汉陶做陶艺\n\n手碰到湿润泥土的那一刻\n整个人突然就松下来了\n\n专注捏泥的两小时里\n脑子里那些乱七八糟的事都消失了\n\n原来这就是传说中的「心流」状态 🧘",
     "比捏泡泡纸还解压的事情找到了！\n\n就是——捏！泥！巴！\n\n看着泥团在手中变软变顺\n然后在陶轮上转出一个圆润的形状\n这个过程太治愈了\n\n什么KPI、OKR统统抛在脑后\n此刻只有我和我的泥巴 🌈",
@@ -323,7 +420,7 @@ var templates_解压 = [
     "我宣布：陶艺是最好的解压方式！🏆\n\n理由：\n1. 动手不动脑（脑子终于休息了）\n2. 有成果（满满的成就感）\n3. 不累（比运动轻松）\n4. {emotions}（亲测）\n5. 会上瘾（好的那种）\n\n{endings}"
 ];
 
-// ======== 送礼推荐 模板（20条） ========
+// ======== 送礼推荐 20条 ========
 var templates_送礼 = [
     "朋友生日送什么？\n送个自己做的{works}！🎁\n\n在青羌汉陶亲手做一个{works}\n刻上对方的名字\n烧出来独一无二\n\n比买任何礼物都有心意\n朋友收到直接感动哭了 😭",
     "教师节礼物有灵感了！\n\n来青羌汉陶给老师做一个{works}\n刻上「桃李满天下」\n比买鲜花实用\n比送贺卡有心\n\n老师用的时候\n就会想起你这个学生 💐",
@@ -347,7 +444,7 @@ var templates_送礼 = [
     "不知道送什么的时候\n就送「用心」\n\n来青羌汉陶\n亲自做一个礼物\n\n从揉泥到塑形到刻字\n每一步都是你的心意\n\n这样的礼物\n谁会不喜欢呢 🎀"
 ];
 
-// ======== 团建聚会 模板（20条） ========
+// ======== 团建聚会 20条 ========
 var templates_团建 = [
     "公司团建新选择！别再吃饭唱歌了 🎉\n\n带团队来青羌汉陶做陶艺\n人均100+，比包场KTV便宜\n而且超级有意思！\n\n每个人做的都不一样\n烧出来摆在工位上\n每天看到都心情好～",
     "部门团建去青羌汉陶是什么体验？\n\n答案：笑到脸疼！\n\n平时严肃的领导\n做陶艺手忙脚乱超可爱\n平时高冷的同事\n捏了个歪{works}笑到蹲在地上\n\n比任何破冰游戏都管用！",
@@ -355,17 +452,17 @@ var templates_团建 = [
     "小组团建选择了陶艺\n没想到效果这么好！\n\n大家互相帮忙、互相拍照\n还有人主动教不会的同事\n\n平时在办公室不怎么说话的两个同事\n因为陶艺聊了一下午\n\n手作的力量，太神奇了 ✨",
     "公司年会不表演节目了\n改成来青羌汉陶搞陶艺比赛 🏆\n\n规则：限时90分钟\n看谁做出来的{works}最好看\n\n结果笑料百出\n有人做了个像烟灰缸的\n有人做了个像马桶的\n\n比排练节目开心一万倍！",
     "创业团队的周末：来青羌汉陶开脑暴会 💡\n\n换个环境、换种方式\n手里捏着泥巴\n脑子反而更活跃了\n\n讨论出了好几个新点子\n顺便每个人做了个{works}\n\n效率比在会议室高多了！",
-    "朋友聚会新玩法：陶艺+下午茶 ☕\n\n一群人来青羌汉陶\n先做陶艺再喝下午茶\n\n大家拿着自己做的{works}\n（虽然是素胚还不能用）\n假装喝茶拍照\n\n比纯喝下午茶有意思太多了！",
-    "同学聚会不喝酒了\n（年纪大了喝不动）\n\n改来青羌汉陶做陶艺\n大家一边捏泥巴一边叙旧\n\n有人做了个{works}说要带回家给老婆\n有人做了个碗说给妈妈\n\n十几年的老同学\n在一起做什么都开心",
-    "社团活动去哪搞？推荐陶艺馆！\n\n摄影社的来做陶艺\n顺便拍了一堆好看的照片\n\n读书会的来做陶艺\n聊了一下午的书和人生\n\n桌游社的来做陶艺\n把骰子做成了陶瓷的\n\n任何社团都适用！",
+    "朋友聚会新玩法：陶艺+下午茶 ☕\n\n一群人来青羌汉陶\n先做陶艺再喝下午茶\n\n大家拿着自己做的{works}\n假装喝茶拍照\n\n比纯喝下午茶有意思太多了！",
+    "同学聚会不喝酒了\n改来青羌汉陶做陶艺\n大家一边捏泥巴一边叙旧\n\n有人做了个{works}说要带回家给老婆\n有人做了个碗说给妈妈\n\n十几年的老同学\n在一起做什么都开心",
+    "社团活动去哪搞？推荐陶艺馆！\n\n摄影社的来做陶艺\n顺便拍了一堆好看的照片\n\n读书会的来做陶艺\n聊了一下午的书和人生\n\n任何社团都适用！",
     "生日聚会不想去KTV？\n来青羌汉陶！\n\n一群朋友一起做陶艺\n每个人做一件作品送给寿星\n\n最后寿星收到了好多{workAdj}的{works}\n笑着笑着就哭了\n\n比在KTV喝酒有意义多了 🎂",
     "团队outing最佳选择！\n\n上午：青羌汉陶做陶艺\n中午：双流吃老妈兔头\n下午：逛黄龙溪古镇\n\n满满当当的一天\n不赶路、不排队、不累\n\n这才是成都周边游的正确打开方式！",
     "毕业季班级聚会\n我们选择了青羌汉陶\n\n每个人做一个{works}\n底部刻上自己的名字\n留给班级当作纪念\n\n十年后同学聚会\n这些{works}还在的话\n一定很感慨吧 🎓",
     "离职前最后一次团建\n大家来青羌汉陶做陶艺\n\n每个人给我写了一句祝福\n我印在了{works}上\n\n烧出来之后\n这个{works}比任何离职礼物都珍贵\n因为它装着整个团队的温度 💛",
     "团建不想再做无聊的拓展训练了？\n\n换青羌汉陶！\n\n做陶艺的过程：\n✅ 自然而然就会互相帮忙\n✅ 自然而然就会聊天交流\n✅ 自然而然就会开怀大笑\n\n比任何「破冰」都自然\n比任何「团建游戏」都有效",
     "带团队来青羌汉陶团建后\n发现了一个秘密：\n\n平时在办公室不怎么说话的两个人\n因为陶艺聊了一下午\n\n平时看起来很严肃的领导\n做陶艺的时候也手忙脚乱\n\n大家突然发现\n原来我们都一样\n都是第一次玩泥巴的「新手」\n\n距离一下子就拉近了 🤝",
-    "公司团建 | 青羌汉陶陶艺体验回顾 📸\n\n20个人的部门\n分成两批上陶轮\n\n第一批做的时候第二批在旁边拍照起哄\n第二批做的时候第一批在旁边指导（瞎指挥）\n\n全程笑声不断\n比去年去农家乐有意思多了\n\n明年团建还选这里！",
-    "推荐给所有HR的团建方案：\n\n🏺 地点：双流青羌汉陶\n💰 预算：人均100-200\n⏰ 时长：2-3小时\n👥 容量：10-30人\n\n优势：\n→ 费用可控，不会超标\n→ 零基础都能参与，不会有人尴尬\n→ 有纪念品，大家回去还能用\n→ 真的能增进感情，不是走过场",
+    "公司团建 | 青羌汉陶陶艺体验回顾 📸\n\n20个人的部门\n分成两批上陶轮\n\n第一批做的时候第二批在旁边拍照起哄\n第二批做的时候第一批在旁边指导\n\n全程笑声不断\n比去年去农家乐有意思多了\n\n明年团建还选这里！",
+    "推荐给所有HR的团建方案：\n\n🏺 地点：双流青羌汉陶\n💰 预算：人均100-200\n⏰ 时长：2-3小时\n👥 容量：10-30人\n\n优势：\n→ 费用可控，不会超标\n→ 零基础都能参与\n→ 有纪念品\n→ 真的能增进感情",
     "周末和大学室友小聚\n四年没见了\n\n来了青羌汉陶做陶艺\n一边捏泥巴一边聊近况\n\n最后一人做了一个{works}\n约定十年后再聚\n各自带着今天的作品来\n\n也不知道那时候\n这些{works}还在不在 😂",
     "青羌汉陶——我愿称之为「团建天花板」🔝\n\n去过这么多团建\n这是唯一一次\n所有人都投入、都开心、都有收获的\n\n没有人在玩手机\n没有人在角落发呆\n每个人都沉浸在自己的创作里\n\n做出来的{works}各不相同\n但那份快乐是相同的",
     "团建的意义不是「团」\n而是「在一起做一件事」\n\n在青羌汉陶\n大家一起学陶艺\n一起笑彼此的歪{works}\n一起拍照留念\n\n这种一起创造的回忆\n比任何口号都更能凝聚团队\n\n{endings}"
@@ -384,7 +481,7 @@ var templatesMap = {
 };
 
 // ==========================================
-//  核心函数：随机填充模板变量
+//  随机填充模板变量
 // ==========================================
 function randomPick(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -399,15 +496,6 @@ function fillTemplate(tpl) {
         .replace(/\{feelWords\}/g, function() { return randomPick(feelWords); })
         .replace(/\{actionWords\}/g, function() { return randomPick(actionWords); })
         .replace(/\{soloPerson\}/g, function() { return randomPick(soloPerson); })
-        .replace(/\{couplePerson\}/g, function() { return randomPick(couplePerson); })
-        .replace(/\{friendPerson\}/g, function() { return randomPick(friendPerson); })
-        .replace(/\{familyPerson\}/g, function() { return randomPick(familyPerson); })
-        .replace(/\{colleaguePerson\}/g, function() { return randomPick(colleaguePerson); })
-        .replace(/\{soloAction\}/g, function() { return randomPick(soloAction); })
-        .replace(/\{coupleAction\}/g, function() { return randomPick(coupleAction); })
-        .replace(/\{friendAction\}/g, function() { return randomPick(friendAction); })
-        .replace(/\{familyAction\}/g, function() { return randomPick(familyAction); })
-        .replace(/\{colleagueAction\}/g, function() { return randomPick(colleagueAction); })
         .replace(/\{works\}/g, function() { return randomPick(works); })
         .replace(/\{workAdj\}/g, function() { return randomPick(workAdj); })
         .replace(/\{priceWords\}/g, function() { return randomPick(priceWords); })
@@ -415,8 +503,7 @@ function fillTemplate(tpl) {
 }
 
 // ==========================================
-//  防重复 + 降权机制
-//  用 localStorage 记录每条被复制的次数
+//  防重复 + 降权机制 (localStorage)
 // ==========================================
 var STORAGE_KEY = "xhs_copy_history_v2";
 
@@ -424,9 +511,7 @@ function getHistory() {
     try {
         var raw = localStorage.getItem(STORAGE_KEY);
         return raw ? JSON.parse(raw) : {};
-    } catch(e) {
-        return {};
-    }
+    } catch(e) { return {}; }
 }
 
 function saveHistory(history) {
@@ -435,16 +520,13 @@ function saveHistory(history) {
     } catch(e) {}
 }
 
-// 记录某条文案被复制
 function recordCopy(text) {
     var history = getHistory();
-    // 用文本前100字符做key
     var key = text.substring(0, 100).replace(/\s/g, "");
     history[key] = (history[key] || 0) + 1;
     saveHistory(history);
 }
 
-// 获取某条文案被复制次数
 function getCopyCount(text) {
     var history = getHistory();
     var key = text.substring(0, 100).replace(/\s/g, "");
@@ -452,16 +534,14 @@ function getCopyCount(text) {
 }
 
 // ==========================================
-//  核心：带权重的随机选择
-//  复制过的降低权重
+//  带权重的随机选择
 // ==========================================
-var MAX_RETRY = 50; // 最多尝试50次找未复制的
+var MAX_RETRY = 50;
 
 function generateCopy() {
     var templates = templatesMap[currentStyle] || templates_文艺;
     var baseTags = baseTagsMap[currentStyle] || baseTagsMap["文艺"];
 
-    // 尝试找一条没被复制过的
     var bestText = "";
     var bestCount = Infinity;
 
@@ -471,22 +551,19 @@ function generateCopy() {
         var count = getCopyCount(text);
 
         if (count === 0) {
-            // 没被复制过，直接用
             return { text: text, tags: baseTags + SHOP_TAG };
         }
-
         if (count < bestCount) {
             bestCount = count;
             bestText = text;
         }
     }
 
-    // 所有尝试的都被复制过，返回复制次数最少的
     return { text: bestText, tags: baseTags + SHOP_TAG };
 }
 
 // ==========================================
-//  当前状态
+//  当前状态 & UI
 // ==========================================
 var currentStyle = "文艺";
 var currentText = "";
@@ -514,7 +591,6 @@ function updateContent() {
     }
 }
 
-// 一键复制（记录降权）
 function copyText() {
     recordCopy(currentText);
     var fullText = currentText + "\n\n" + currentTags;
@@ -522,9 +598,7 @@ function copyText() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(fullText).then(function() {
             showToast("✅ 文案已复制，去小红书粘贴吧！");
-        }).catch(function() {
-            fallbackCopy(fullText);
-        });
+        }).catch(function() { fallbackCopy(fullText); });
     } else {
         fallbackCopy(fullText);
     }
@@ -542,14 +616,12 @@ function fallbackCopy(text) {
     showToast("✅ 文案已复制，去小红书粘贴吧！");
 }
 
-// 换一条
 function refreshContent() {
     var card = document.getElementById("card");
     if (card) {
         card.style.opacity = "0";
         card.style.transform = "translateY(10px)";
     }
-
     setTimeout(function() {
         updateContent();
         if (card) {
@@ -560,20 +632,16 @@ function refreshContent() {
     }, 200);
 }
 
-// Toast
 var toastTimer;
-function showToast显示Toast(msg消息) {
+function showToast(msg) {函数 showToast显示Toast(消息) {
     var toast = document.getElementById("toast");
     if (!toast) return;    如果 (!toast) 返回;
     toast.textContent = msg;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() {
-        toast.classList.remove("show");
-    }, 1800);
+    toastTimer = setTimeout(function() { toast.classList.remove("show"); }, 1800);
 }
 
-// 打开小红书
 function openXHS() {
     var start = Date.now();
     window.location.href = "xhsdiscover://";
@@ -588,11 +656,9 @@ function openXHS() {
 document.getElementById("styleSelector").addEventListener("click", function(e) {
     var tag = e.target.closest(".style-tag");
     if (!tag) return;
-
     var allTags = document.querySelectorAll(".style-tag");
     allTags.forEach(function(t) { t.classList.remove("active"); });
     tag.classList.add("active");    标签.classList.添加("active");
-
     currentStyle = tag.getAttribute("data-style");    当前样式 = 标签.获取属性("data-style");
     updateContent();
     showToast("已切换至「" + tag.textContent.trim() + "」");
@@ -603,3 +669,5 @@ updateContent();
 </script>
 </body>
 </html>
+
+
