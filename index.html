@@ -633,9 +633,9 @@ function refreshContent() {
 }
 
 var toastTimer;
-function showToast(msg) {函数 showToast显示Toast(消息) {
+function showToast(msg) {
     var toast = document.getElementById("toast");
-    if (!toast) return;    如果 (!toast) 返回;
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add("show");
     clearTimeout(toastTimer);
@@ -646,7 +646,7 @@ function openXHS() {
     var start = Date.now();
     window.location.href = "xhsdiscover://";
     setTimeout(function() {
-        if (Date.now() - start < 2000) {        如果 (日期.现在() - 开始 < 2000) {
+        if (Date.now() - start < 2000) {
             window.location.href = "https://apps.apple.com/cn/app/id741292507";
         }
     }, 1500);
@@ -669,5 +669,3 @@ updateContent();
 </script>
 </body>
 </html>
-
-
